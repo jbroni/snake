@@ -6,7 +6,7 @@ import { Strategy } from "./strategy";
 interface Node {
   g: number; // Total cost to reach node
   h: number; // Estimated time to reach finish from this node (heuristic)
-  f: number; // g + h
+  f: number; // f(x) = g(x) + h(x)
   parent: Node | undefined;
   position: Position;
   isObstacle: boolean;
@@ -28,6 +28,7 @@ export class CustomStrategy implements Strategy {
     let nextNode = this.search(start, end);
 
     if (!nextNode) {
+      // No path found by search - simply try to avoid obstacles
       const neighbors = this.getNeighbors(start);
       nextNode = _.find(neighbors, (neighbor) => !neighbor.isObstacle);
     }
@@ -64,16 +65,19 @@ export class CustomStrategy implements Strategy {
   }
 
   private placeObstacles(context: Context): void {
-    context.obstacles.forEach((obstacle) => {
+    const placeObstacle = (obstacle) => {
       this.grid[obstacle.x][obstacle.y].isObstacle = true;
-    });
-    context.snake.parts.forEach((snake) => {
-      this.grid[snake.x][snake.y].isObstacle = true;
-    });
+    };
+
+    context.obstacles.forEach(placeObstacle);
+    context.snake.parts.forEach(placeObstacle);
   }
 
+  // A* search
   private search(start: Node, end: Node): Node | undefined {
+    // Nodes currently being searched
     const openList: Node[] = [];
+    // Nodes that we are done searching
     const closedList: Node[] = [];
 
     // Set start position
@@ -102,11 +106,10 @@ export class CustomStrategy implements Strategy {
 
       for (let i = 0; i < neighbors.length; i++) {
         const neighbor = neighbors[i];
-        const isClosed = !!_.find(closedList, (closed) =>
-          isSamePosition(closed.position, neighbor.position)
-        );
+        const closedNode = findNode(closedList, neighbor);
 
-        if (isClosed || neighbor.isObstacle) {
+        if (closedNode || neighbor.isObstacle) {
+          // Not part of a valid path - skip to next neighbor
           continue;
         }
 
@@ -114,9 +117,7 @@ export class CustomStrategy implements Strategy {
         const gScore = currentNode.g + 1;
         let gScoreIsBest = false;
 
-        const openNode = _.find(openList, (open) =>
-          isSamePosition(open.position, neighbor.position)
-        );
+        const openNode = findNode(openList, neighbor);
         if (!openNode) {
           // First time we visit this node
           gScoreIsBest = true;
@@ -178,6 +179,12 @@ export class CustomStrategy implements Strategy {
 
 function isSamePosition(a: Position, b: Position): boolean {
   return a.x === b.x && a.y === b.y;
+}
+
+function findNode(list: Node[], node: Node): Node | undefined {
+  return _.find(list, (candidate) =>
+    isSamePosition(candidate.position, node.position)
+  );
 }
 
 function heuristic(a: Position, b: Position): number {
