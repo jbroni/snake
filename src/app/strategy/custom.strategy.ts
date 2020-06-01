@@ -1,4 +1,3 @@
-import * as _ from "lodash";
 import { Context, Position, SnakeDirection } from "./context";
 
 import { Strategy } from "./strategy";
@@ -30,7 +29,7 @@ export class CustomStrategy implements Strategy {
     if (!nextNode) {
       // No path found by search - simply try to avoid obstacles
       const neighbors = this.getNeighbors(start);
-      nextNode = _.find(neighbors, (neighbor) => !neighbor.isObstacle);
+      neighbors.find((neighbor) => !neighbor.isObstacle);
     }
 
     if (nextNode) {
@@ -76,17 +75,21 @@ export class CustomStrategy implements Strategy {
   // A* search
   private search(start: Node, end: Node): Node | undefined {
     // Nodes currently being searched
-    const openList: Node[] = [];
+    let openList: Node[] = [];
     // Nodes that we are done searching
     const closedList: Node[] = [];
 
     // Set start position
     openList.push(start);
 
-    // Find lowest f(x) to process
-    let currentNode: Node;
     while (openList.length > 0) {
-      currentNode = _.minBy(openList, (node) => node.f);
+      // Find lowest f(x) to process
+      let currentNode: Node;
+      openList.forEach((node) => {
+        if (!currentNode || node.f < currentNode.f) {
+          currentNode = node;
+        }
+      });
 
       // End case - trace path, return node to move to
       if (isSamePosition(currentNode.position, end.position)) {
@@ -96,11 +99,11 @@ export class CustomStrategy implements Strategy {
           path.push(current);
           current = current.parent;
         }
-        return _.last(path);
+        return path.slice(-1).pop();
       }
 
       // Main case - move currentNode from open to closed, process neighbors
-      _.pull(openList, currentNode);
+      openList = openList.filter((node) => node !== currentNode);
       closedList.push(currentNode);
       const neighbors = this.getNeighbors(currentNode);
 
@@ -182,7 +185,7 @@ function isSamePosition(a: Position, b: Position): boolean {
 }
 
 function findNode(list: Node[], node: Node): Node | undefined {
-  return _.find(list, (candidate) =>
+  return list.find((candidate) =>
     isSamePosition(candidate.position, node.position)
   );
 }
