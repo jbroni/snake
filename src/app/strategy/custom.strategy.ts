@@ -27,7 +27,14 @@ export class CustomStrategy implements Strategy {
     let nextNode = this.search(start, end);
 
     if (!nextNode) {
-      // No path found by search - simply try to avoid obstacles
+      // No path found to fruit - try to get to end of tail
+      const snakeTail = context.snake.parts.slice(-1).pop();
+      const snakeTailNode = this.grid[snakeTail.x][snakeTail.y];
+      nextNode = this.search(start, snakeTailNode);
+    }
+
+    if (!nextNode) {
+      // No path found - simply try to avoid obstacles
       const neighbors = this.getNeighbors(start);
       neighbors.find((neighbor) => !neighbor.isObstacle);
     }
